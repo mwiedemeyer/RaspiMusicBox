@@ -17,11 +17,17 @@ namespace RaspiMusic
             //var mpc = new MpcClient("192.168.1.123");
             var mpc = new MpcClient();
 
+            GpioConnection gpio = null;
+
             var p11First = true;
             var p12First = true;
             var p13First = true;
             var p15First = true;
             var p16First = true;
+            var volumeUpPressed = false;
+            var volumeUpPressedStart = DateTime.MinValue;
+
+            var p40 = ConnectorPin.P1Pin40.Output().Disable();
 
             var p11 = ConnectorPin.P1Pin11.Input().PullUp();
             p11.OnStatusChanged((off) =>
@@ -43,7 +49,22 @@ namespace RaspiMusic
                     return;
                 }
                 if (!off)
+                {
                     mpc.VolumeUp();
+                    volumeUpPressed = true;
+                    volumeUpPressedStart = DateTime.Now;
+                }
+
+                Console.WriteLine(volumeUpPressedStart);
+
+                if (off && volumeUpPressed)
+                {
+                    if (volumeUpPressedStart.AddSeconds(2) < DateTime.Now)
+                    {
+                        // on volume up press for 2 seconds, toggle port to enable/disable speaker (in favor of headphone out)
+                        gpio?.Toggle(p40);
+                    }
+                }
             });
 
             var p13 = ConnectorPin.P1Pin13.Input().PullUp();
@@ -80,7 +101,16 @@ namespace RaspiMusic
                     mpc.Previous();
             });
 
-            var gpio = new GpioConnection(p11, p12, p13, p15, p16);
+            var p03 = ConnectorPin.P1Pin03.Output();
+
+            gpio = new GpioConnection(p03, p11, p12, p13, p15, p16, p40);
+
+            // blink power led on startup
+            for (int i = 0; i < 7; i++)
+            {
+                gpio.Toggle(p03);
+                System.Threading.Thread.Sleep(300);
+            }
 
             mpc.ResetVolume();
 
@@ -90,7 +120,6 @@ namespace RaspiMusic
                 var inp = Console.ReadLine();
 
                 mpc.Stop();
-                mpc.ResetVolume();
                 mpc.ClearPlaylist();
                 mpc.LoadPlaylist(inp);
                 mpc.Play();
