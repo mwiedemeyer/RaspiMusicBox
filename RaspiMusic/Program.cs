@@ -24,8 +24,8 @@ namespace RaspiMusic
             var p13First = true;
             var p15First = true;
             var p16First = true;
-            var volumeUpPressed = false;
-            var volumeUpPressedStart = DateTime.MinValue;
+            var buttonPressed = false;
+            var buttonPressedStart = DateTime.MinValue;
 
             var p40 = ConnectorPin.P1Pin40.Output().Disable();
 
@@ -38,7 +38,22 @@ namespace RaspiMusic
                     return;
                 }
                 if (!off)
+                {
                     mpc.PlayPauseToggle();
+                    buttonPressed = true;
+                    buttonPressedStart = DateTime.Now;
+                }
+
+                if (off && buttonPressed)
+                {
+                    if (buttonPressedStart.AddSeconds(1.5) < DateTime.Now)
+                    {
+                        // on press for 1.5 seconds, toggle port to enable/disable speaker (in favor of headphone out)
+                        gpio?.Toggle(p40);
+                        mpc.PlayPauseToggle();
+                    }
+                }
+
             });
             var p12 = ConnectorPin.P1Pin12.Input().PullUp();
             p12.OnStatusChanged((off) =>
@@ -49,22 +64,7 @@ namespace RaspiMusic
                     return;
                 }
                 if (!off)
-                {
                     mpc.VolumeUp();
-                    volumeUpPressed = true;
-                    volumeUpPressedStart = DateTime.Now;
-                }
-
-                Console.WriteLine(volumeUpPressedStart);
-
-                if (off && volumeUpPressed)
-                {
-                    if (volumeUpPressedStart.AddSeconds(2) < DateTime.Now)
-                    {
-                        // on volume up press for 2 seconds, toggle port to enable/disable speaker (in favor of headphone out)
-                        gpio?.Toggle(p40);
-                    }
-                }
             });
 
             var p13 = ConnectorPin.P1Pin13.Input().PullUp();
@@ -105,14 +105,14 @@ namespace RaspiMusic
 
             gpio = new GpioConnection(p03, p11, p12, p13, p15, p16, p40);
 
+            mpc.ResetVolume();
+
             // blink power led on startup
             for (int i = 0; i < 7; i++)
             {
                 gpio.Toggle(p03);
                 System.Threading.Thread.Sleep(300);
             }
-
-            mpc.ResetVolume();
 
             while (true)
             {
