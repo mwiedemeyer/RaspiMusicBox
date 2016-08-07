@@ -107,12 +107,17 @@ namespace RaspiMusic
 
             mpc.ResetVolume();
 
-            // blink power led on startup
-            for (int i = 0; i < 7; i++)
+            var blinkThread = new System.Threading.Thread(new System.Threading.ThreadStart(() =>
             {
-                gpio.Toggle(p03);
-                System.Threading.Thread.Sleep(300);
-            }
+                while (true)
+                {
+                    // blink power led when ready
+                    gpio.Toggle(p03);
+                    System.Threading.Thread.Sleep(1000);
+                }
+            }));
+            blinkThread.Start();
+
 
             while (true)
             {
