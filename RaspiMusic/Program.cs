@@ -118,7 +118,6 @@ namespace RaspiMusic
             }));
             blinkThread.Start();
 
-
             while (true)
             {
                 Console.WriteLine("Waiting for playlist name...");
