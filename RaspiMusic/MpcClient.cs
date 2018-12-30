@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -9,7 +10,7 @@ namespace RaspiMusic
 {
     public class MpcClient
     {
-        private string _ip;
+        private readonly string _ip;
 
         public MpcClient(string ip = "127.0.0.1")
         {
@@ -59,7 +60,7 @@ namespace RaspiMusic
         public void ResetVolume()
         {
             ExecuteCommand("volume -100");
-            ExecuteCommand("volume +40");
+            ExecuteCommand("volume +" + ConfigurationManager.AppSettings["Volume:StartWithPercent"]);
         }
 
         public void PlayPauseToggle()
@@ -69,12 +70,12 @@ namespace RaspiMusic
 
         public void VolumeUp()
         {
-            ExecuteCommand("volume +10");
+            ExecuteCommand("volume +" + ConfigurationManager.AppSettings["Volume:PlusMinus"]);
         }
 
         public void VolumeDown()
         {
-            ExecuteCommand("volume -10");
+            ExecuteCommand("volume -" + ConfigurationManager.AppSettings["Volume:PlusMinus"]);
         }
 
         public void Stop()
